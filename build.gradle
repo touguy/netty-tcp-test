@@ -1,0 +1,47 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.4.5'
+	id 'io.spring.dependency-management' version '1.1.7'
+
+	id 'com.google.protobuf' version '0.9.4' // [필수] Protobuf 플러그인
+}
+
+group = 'com.example.tcp'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+// Lombok 설정을 위한 추가 구성
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+	mavenCentral()
+}
+
+// build.gradle (dependencies 블록)
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'io.netty:netty-all:4.1.100.Final' // Netty 버전은 최신 안정 버전으로 조정하세요.
+    implementation 'com.google.protobuf:protobuf-java:3.25.1' // 버전 조정 필요
+    
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+// [필수] Protobuf 컴파일 설정
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.1'
+    }
+}

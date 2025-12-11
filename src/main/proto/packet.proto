@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.example.tcp.proto;
+
+option java_package = "com.example.tcp.proto";
+option java_outer_classname = "PacketProto";
+
+message Packet {
+  enum PacketType {
+    UNKNOWN = 0;
+    PING = 1;
+    PONG = 2;
+    DATA = 3;
+    ERROR = 4;
+  }
+
+  PacketType type = 1;
+  string payload = 2;
+  int32 statusCode = 3;
+  int64 timestamp = 4;
+}
