@@ -1,0 +1,19 @@
+syntax = "proto3";
+package com.example.tcp.proto;
+
+// 다른 프로토 파일들을 임포트 (경로 주의)
+import "packet.proto";
+import "auth.proto";
+import "order.proto";
+
+option java_package = "com.example.tcp.proto";
+option java_outer_classname = "WrapperProto";
+
+message WrapperMessage {
+  // oneof: 이 중 단 하나만 설정될 수 있음
+  oneof msg {
+    Packet packet = 1;
+    AuthMessage auth = 2;
+    OrderMessage order = 3;
+  }
+}

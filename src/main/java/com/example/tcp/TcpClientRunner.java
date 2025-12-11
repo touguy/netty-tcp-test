@@ -4,6 +4,7 @@ package com.example.tcp;
 import com.example.tcp.proto.PacketProto;
 import com.example.tcp.proto.PacketProto.Packet;
 import com.example.tcp.proto.PacketProto.Packet.PacketType;
+import com.example.tcp.proto.WrapperProto.WrapperMessage;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -53,14 +54,14 @@ public class TcpClientRunner implements ApplicationRunner {
                      
                      // 1. 수신 (Inbound): 프레임 디코더 -> Protobuf 디코더
                      p.addLast(new ProtobufVarint32FrameDecoder());
-                     p.addLast(new ProtobufDecoder(PacketProto.Packet.getDefaultInstance()));
+                     p.addLast(new ProtobufDecoder(WrapperMessage.getDefaultInstance()));
                      
                      // 2. 송신 (Outbound): 길이 프리펜더 -> Protobuf 인코더
                      p.addLast(new ProtobufVarint32LengthFieldPrepender());
                      p.addLast(new ProtobufEncoder());
                      
                      // 3. 클라이언트 비즈니스 로직 핸들러
-                     p.addLast(new SimpleChannelInboundHandler<Packet>() {
+                     p.addLast(new SimpleChannelInboundHandler<WrapperMessage>() {
                          @Override
                          public void channelActive(ChannelHandlerContext ctx) {
                              log.info("Connected to Server!");
@@ -69,34 +70,38 @@ public class TcpClientRunner implements ApplicationRunner {
                                      .setType(PacketType.DATA)
                                      .setPayload(payload) 
                                      .build();
-                             ctx.writeAndFlush(msg);
+                             ctx.writeAndFlush(WrapperMessage.newBuilder().setPacket(msg).build());
                          }
 
                          @Override
-                         protected void channelRead0(ChannelHandlerContext ctx, Packet msg) {
-                            log.info("Received from Server: [Type={}] [Payload={}] [Status={}]", 
-                                      msg.getType(), msg.getPayload(), msg.getStatusCode());
+                         protected void channelRead0(ChannelHandlerContext ctx, WrapperMessage msg) {
+                            if (msg.hasPacket()) {
+                                Packet p = msg.getPacket();
+                            
+                                log.info("Received from Server: [Type={}] [Payload={}] [Status={}]", 
+                                      p.getType(), p.getPayload(), p.getStatusCode());
 
-                            // ⭐ Heartbeat 응답 로직 추가 ⭐
-                            if (msg.getType() == PacketType.PING) {
-                                // PING을 받으면 PONG 패킷을 즉시 만들어 서버로 응답합니다.
-                                Packet pongMsg = Packet.newBuilder()
-                                        .setType(PacketType.PONG) // PONG 타입 사용
-                                        .setPayload("PONG response")
-                                        .setTimestamp(System.currentTimeMillis())
-                                        .build();
-                                ctx.writeAndFlush(pongMsg);
-                                log.info("Sent PONG response to Server.");
+                                // ⭐ Heartbeat 응답 로직 추가 ⭐
+                                if (p.getType() == PacketType.PING) {
+                                    // PING을 받으면 PONG 패킷을 즉시 만들어 서버로 응답합니다.
+                                    Packet pongMsg = Packet.newBuilder()
+                                            .setType(PacketType.PONG) // PONG 타입 사용
+                                            .setPayload("PONG response")
+                                            .setTimestamp(System.currentTimeMillis())
+                                            .build();
+                                    ctx.writeAndFlush(WrapperMessage.newBuilder().setPacket(pongMsg).build());
+                                    log.info("Sent PONG response to Server.");
                                 
-                            } else if (msg.getType() == PacketType.DATA) {
-                                // DATA 응답 처리 (예: ECHO)
-                                log.info("DATA packet processed. Keeping connection alive.");
+                                } else if (p.getType() == PacketType.DATA) {
+                                    // DATA 응답 처리 (예: ECHO)
+                                    log.info("DATA packet processed. Keeping connection alive.");
                                 
-                            } else if (msg.getType() == PacketType.ERROR) {
-                                log.error("Received ERROR packet! Status Code: {}", msg.getStatusCode());
-                                // 에러를 받으면 연결을 닫고 애플리케이션을 종료합니다.
-                                ctx.close();
-                            }                        
+                                } else if (p.getType() == PacketType.ERROR) {
+                                    log.error("Received ERROR packet! Status Code: {}", p.getStatusCode());
+                                    // 에러를 받으면 연결을 닫고 애플리케이션을 종료합니다.
+                                    ctx.close();
+                                }                        
+                            }
                          }
                          
                          @Override
