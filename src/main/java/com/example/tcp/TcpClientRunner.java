@@ -74,7 +74,7 @@ public class TcpClientRunner implements ApplicationRunner {
                                         ctx.writeAndFlush("PONG\n");
                                     } else {
                                         // 일반 메시지 처리 (Echo)
-                                        ctx.writeAndFlush("ECHO: " + msg + "\n");
+                                        // ctx.writeAndFlush("ECHO: " + msg + "\n");
                                     }
                                 }
 
